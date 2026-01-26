@@ -1,25 +1,27 @@
 // structure.ts
-import {StructureResolver} from 'sanity/structure'
+import type {StructureResolver} from 'sanity/structure'
+
+const SUPER_ADMINS = new Set(['collinsruto48@gmail.com', 'erefwe@gmail.com'])
 
 export const structure: StructureResolver = (S, context) => {
-  const {currentUser} = context
+  // Some setups may not provide currentUser here — handle safely
+  const email = context?.currentUser?.email
+  const isSuperAdmin = email ? SUPER_ADMINS.has(email) : false
 
-  // Define who the "Super Admin" is
-  const isSuperAdmin = ['collinsruto48@gmail.com', 'erefweb@gmail.com'].includes(
-    currentUser?.email || 'example@gmail.com',
-  )
+  const hiddenTypes = new Set(['settings', 'apiConfig'])
 
   return S.list()
     .title('Content')
     .items([
-      // 1. Show regular schemas to everyone
-      ...S.documentTypeListItems().filter(
-        (listItem) => !['settings', 'apiConfig'].includes(listItem.getId()!),
-      ),
+      // Normal content types (hide settings + apiConfig from general list)
+      ...S.documentTypeListItems().filter((listItem) => {
+        const id = listItem.getId()
+        return id ? !hiddenTypes.has(id) : true
+      }),
 
       S.divider(),
 
-      // 2. Only show "Settings" to the Super Admin
+      // Only show Settings shortcut to super admins
       ...(isSuperAdmin
         ? [
             S.listItem()
